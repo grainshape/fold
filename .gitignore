@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
+
+# Turbo
+.turbo
+
+# Changeset temp
+.changeset/*.md
+!.changeset/config.json
+
+# AI / agent tooling
+AGENTS.md
+.agents/
+.opencode/
+.opencode.json
+.opencoderules

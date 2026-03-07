@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+
+# Security settings
+cleanupUnusedCatalogs: true
+minimumReleaseAge: 1440
