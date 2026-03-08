@@ -56,4 +56,6 @@ See the [`@grainshape/fold` documentation](https://www.npmjs.com/package/@grains
 
 ## License
 
-MIT
+MIT © John van Dijk
+
+This package includes `@grainshape/fold`, which contains code derived from [CVA](https://github.com/joe-bell/cva) by Joe Bell (Apache 2.0). See [NOTICE](../../NOTICE) for details.

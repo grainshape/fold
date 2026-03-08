@@ -5,7 +5,7 @@
 
 Type-safe class variant resolver. Define component variants as a config object, get back a strongly-typed function that resolves the right class string at runtime.
 
-Inspired by [CVA](https://cva.style), with improved TypeScript inference and a `partition()` method for cleanly splitting variant props from the rest of a component's props.
+Based on [CVA](https://cva.style) by [Joe Bell](https://github.com/joe-bell). Adds `foldConfig()` for lossless type preservation, a `partition()` method for framework-friendly prop splitting, and fixes several TypeScript inference issues present in CVA's type signatures.
 
 ---
 
@@ -168,9 +168,18 @@ cx({ active: true, disabled: false }) // 'active'
 
 ## `foldConfig()`
 
-A typed identity function for defining reusable configs without instantiating a fold. Useful for sharing configs across components or for documentation purposes.
+A typed identity function that captures a config's full generic type without instantiating a fold. This was one of the original motivations for building fold over CVA.
+
+**The problem with plain objects:** if you define a config as a plain object literal and pass it around, TypeScript widens the type — you lose the exact variant key literals. `foldConfig()` preserves them.
 
 ```ts
+// Without foldConfig — type is widened, variant keys are lost
+const config = {
+  variants: { size: { sm: 'small', lg: 'large' } }
+}
+// typeof config.variants.size → Record<string, string> — 'sm' | 'lg' is gone
+
+// With foldConfig — full type is preserved
 import { foldConfig, fold } from '@grainshape/fold'
 
 const buttonConfig = foldConfig({
@@ -179,9 +188,30 @@ const buttonConfig = foldConfig({
     intent: { primary: 'bg-blue-500', secondary: 'bg-gray-100' },
   },
 })
+// typeof buttonConfig knows exactly: intent is 'primary' | 'secondary'
 
-// Use the same config in multiple places
 const button = fold(buttonConfig)
+// button's props are still fully typed: { intent?: 'primary' | 'secondary' }
+```
+
+This matters most when sharing configs across components or when using `compose` — each component's `.config` property is typed exactly, and `compose.configs` returns a typed tuple rather than a generic array:
+
+```ts
+const boxConfig = foldConfig({
+  variants: { shadow: { sm: 'shadow-sm', md: 'shadow-md' } },
+})
+const stackConfig = foldConfig({
+  variants: { gap: { 1: 'gap-1', 2: 'gap-2' } },
+})
+
+const box = fold(boxConfig)
+const stack = fold(stackConfig)
+const card = compose(box, stack)
+
+// card.configs is typed as [typeof boxConfig, typeof stackConfig]
+// — not a generic array, the exact tuple shape is preserved
+type Configs = typeof card.configs
+// [Readonly<FoldConfig<...boxConfig shape...>>, Readonly<FoldConfig<...stackConfig shape...>>]
 ```
 
 ---
@@ -225,6 +255,14 @@ export { fold, compose, cx, foldConfig }
 
 ---
 
+## Credits
+
+Built on top of the ideas and type patterns from [CVA](https://cva.style) by [Joe Bell](https://github.com/joe-bell). fold extends CVA's approach with `foldConfig()` for preserved generic types, `partition()` for prop splitting, and a `defineConfig()` factory for custom resolvers.
+
+---
+
 ## License
 
-MIT
+MIT © John van Dijk
+
+This package contains code derived from [CVA](https://github.com/joe-bell/cva) by Joe Bell (Apache 2.0). See [NOTICE](../../NOTICE) for details.
