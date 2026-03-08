@@ -1,11 +1,17 @@
 {
   "name": "@grainshape/fold",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Type-safe class-variant utility library",
   "author": "John van Dijk",
   "license": "MIT",
-  "keywords": ["cva", "class-variance", "tailwind", "variants", "clsx"],
+  "keywords": [
+    "cva",
+    "class-variance",
+    "tailwind",
+    "variants",
+    "clsx"
+  ],
   "main": "dist/fold.js",
   "typings": "dist/fold.d.ts",
   "exports": {
@@ -14,7 +20,9 @@
       "types": "./dist/fold.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "prebuild": "pnpm run clean",
