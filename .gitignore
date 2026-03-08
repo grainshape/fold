@@ -21,10 +21,6 @@ Thumbs.db
 # Turbo
 .turbo
 
-# Changeset temp
-.changeset/*.md
-!.changeset/config.json
-
 # AI / agent tooling
 AGENTS.md
 opencode.json

@@ -69,6 +69,14 @@ describe('fold -> fn()', () => {
 		expect(example({ class: 'class', className: 'className' })).toBe('class className');
 	});
 
+	it('should reject both class and className when variants are present', () => {
+		const comp = fold({
+			variants: { size: { sm: 'small', lg: 'large' } },
+		});
+		// @ts-expect-error
+		expect(comp({ size: 'sm', class: 'a', className: 'b' })).toBe('small a b');
+	});
+
 	// Base Classes
 	describe('handling base classes', () => {
 		it('should return base class string', () => {
@@ -185,6 +193,40 @@ describe('fold -> fn()', () => {
 				expect(comp({ binary: 'true' })).toMatch(/one/);
 			});
 		});
+
+		describe('handling array conditions', () => {
+			const comp = fold({
+				base: 'base-class',
+				variants: {
+					size: { sm: 'small', md: 'medium', lg: 'large' },
+					color: { red: 'text-red', blue: 'text-blue' },
+				},
+				compoundVariants: [
+					{ size: ['sm', 'md'], color: 'red', class: 'compact-red' },
+				],
+			});
+
+			it('should apply compound variant when value matches an array condition', () => {
+				expect(comp({ size: 'sm', color: 'red' })).toContain('compact-red');
+				expect(comp({ size: 'md', color: 'red' })).toContain('compact-red');
+			});
+
+			it('should not apply compound variant when value does not match array condition', () => {
+				expect(comp({ size: 'lg', color: 'red' })).not.toContain('compact-red');
+			});
+		});
+
+		it('should apply compound variants using className', () => {
+			const comp = fold({
+				base: 'base-class',
+				variants: {
+					size: { sm: 'small', lg: 'large' },
+					color: { red: 'text-red', blue: 'text-blue' },
+				},
+				compoundVariants: [{ size: 'lg', color: 'red', className: 'text-bold' }],
+			});
+			expect(comp({ size: 'lg', color: 'red' })).toContain('text-bold');
+		});
 	});
 
 	// More Complex Variants and Default Configurations
@@ -300,6 +342,17 @@ describe('fold -> fn.partition()', () => {
 			variants: { size: string; inset: boolean; color: unknown },
 			otherProps: { active: boolean }
 		]>();
+	});
+
+	it('should return empty variants and all props as otherProps when no variant keys match', () => {
+		expect(comp.partition({ active: true, disabled: false })).toEqual([
+			{},
+			{ active: true, disabled: false },
+		]);
+	});
+
+	it('should return empty tuples for an empty object', () => {
+		expect(comp.partition({})).toEqual([{}, {}]);
 	});
 })
 
@@ -492,6 +545,17 @@ describe('compose -> fn.partition()', () => {
 			variants: { shadow: string; inset: boolean, gap: number },
 			otherProps: { active: boolean }
 		]>();
+	});
+
+	it('should return empty variants and all props as otherProps when no variant keys match', () => {
+		expect(card.partition({ active: true })).toEqual([
+			{},
+			{ active: true },
+		]);
+	});
+
+	it('should return empty tuples for an empty object', () => {
+		expect(card.partition({})).toEqual([{}, {}]);
 	});
 });
 
