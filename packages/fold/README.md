@@ -77,6 +77,8 @@ const button = fold({
 })
 ```
 
+Values are compared as text, in single values and in arrays alike. A `true` prop matches both `true` and `'true'`, and a numeric prop such as `gap: 1` matches `[1, 2]`.
+
 ---
 
 ## Compose

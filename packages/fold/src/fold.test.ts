@@ -214,6 +214,28 @@ describe('fold -> fn()', () => {
 			it('should not apply compound variant when value does not match array condition', () => {
 				expect(comp({ size: 'lg', color: 'red' })).not.toContain('compact-red');
 			});
+
+			it('should match boolean and numeric values listed in an array condition', () => {
+				const comp = fold({
+					variants: {
+						flag: { true: 'on', false: 'off' },
+						gap: { 1: 'gap-1', 2: 'gap-2', 3: 'gap-3' },
+					},
+					compoundVariants: [
+						{ flag: [true], class: 'listed-true' },
+						{ flag: ['true'], class: 'listed-text' },
+						{ flag: [false, true], class: 'listed-both' },
+						{ gap: [1, 2], class: 'gap-small' },
+					],
+				});
+
+				expect(comp({ flag: true })).toBe('on listed-true listed-text listed-both');
+				expect(comp({ flag: 'true' })).toBe('on listed-true listed-text listed-both');
+				expect(comp({ flag: false })).toBe('off listed-both');
+				expect(comp({ gap: 1 })).toBe('gap-1 gap-small');
+				expect(comp({ gap: 2 })).toBe('gap-2 gap-small');
+				expect(comp({ gap: 3 })).toBe('gap-3');
+			});
 		});
 
 		it('should apply compound variants using className', () => {
@@ -693,13 +715,12 @@ describe('caching', () => {
 		expect(comp({})).toBe('base large off');
 	});
 
-	it('should keep values of different types apart', () => {
+	it('should resolve values with the same text the same way', () => {
 		const comp = fold(recipe);
-		// A single-value condition compares String() forms, so 'true' and true both match it.
-		// An array condition compares a truthy value as is, so only 'true' is listed.
 		expect(comp({ flag: 'true' })).toBe('base large on big-on listed');
-		expect(comp({ flag: true })).toBe('base large on big-on');
-		expect(comp({ flag: 'true' })).toBe('base large on big-on listed');
+		expect(comp({ flag: true })).toBe('base large on big-on listed');
+		expect(comp({ flag: 'false' })).toBe('base large off');
+		expect(comp({ flag: false })).toBe('base large off');
 	});
 
 	it('should cache recipes without variants', () => {

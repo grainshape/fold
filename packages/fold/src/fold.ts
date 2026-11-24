@@ -137,23 +137,12 @@ const cacheSet = (cache: Map<string, string>, key: string, value: string): void 
 const VALUE_END = '\u0000';
 const CALLER_CLASSES_START = '\u0001';
 
-const TYPE_TAGS: Record<string, string> = {
-	string: 's',
-	number: 'n',
-	boolean: 'b',
-	bigint: 'i',
-	symbol: 'y',
-	object: 'o',
-	function: 'f',
-};
-
 /**
- * Encodes a variant value for a cache key. Resolving looks only at a value's type, whether it is
- * truthy and its String() form. The encoding keeps all three, so two values with the same encoding
- * always resolve to the same classes.
+ * Encodes a variant value for a cache key. Resolving compares values by their String() form only,
+ * so true and 'true' share an entry. A missing value always falls back to the same default
+ * (null or undefined) within one recipe, so one marker covers both.
  */
-const encodeValue = (value: unknown): string =>
-	value == null ? '-' : TYPE_TAGS[typeof value] + String(value);
+const encodeValue = (value: unknown): string => (value == null ? '-' : '=' + String(value));
 
 /** Joins two class strings the way clsx does. */
 const joinClasses = (first: string, second: string): string =>
@@ -163,7 +152,7 @@ interface CompoundCondition {
 	key: string;
 	/** String forms of an array condition's options, or null for a single-value condition. */
 	options: string[] | null;
-	/** String form of the condition. */
+	/** String form of a single-value condition. */
 	text: string;
 }
 
@@ -176,13 +165,13 @@ interface Compound {
 type CompoundEntry = Record<string, unknown> & { class?: ClassValue; className?: ClassValue };
 
 /**
- * An array condition matches a truthy value that is one of its options (compared as is).
- * Otherwise a value matches when its String() form equals the condition's.
+ * Values are compared by their String() form, like variant lookups: true matches true and 'true'.
+ * An array condition matches when the value equals one of its options.
  */
-const matchesCondition = (value: unknown, condition: CompoundCondition): boolean =>
-	value && condition.options
-		? condition.options.includes(value as string)
-		: String(value) === condition.text;
+const matchesCondition = (value: unknown, condition: CompoundCondition): boolean => {
+	const text = String(value);
+	return condition.options ? condition.options.includes(text) : text === condition.text;
+};
 
 const typedKeys = <T extends object>(obj: T): (keyof T)[] =>
 	Object.keys(obj) as (keyof T)[];
