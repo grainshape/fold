@@ -10,6 +10,10 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "bench": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "lint": {
       "outputs": []
     },
