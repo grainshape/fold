@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { omit, pick, partition } from './utils';
+import { omit, pick, partition } from './utils.js';
 
 describe('omit', () => {
 	it('should omit specified string keys from object', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fold } from './fold';
+import { fold } from './fold.js';
 
 describe('fold -> fn()', () => {
 
