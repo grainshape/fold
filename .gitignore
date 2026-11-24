@@ -22,6 +22,5 @@ Thumbs.db
 .turbo
 
 # AI / agent tooling
-AGENTS.md
 .agents/
 docs/
