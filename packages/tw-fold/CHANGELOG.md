@@ -1,5 +1,15 @@
 # @grainshape/tw-fold
 
+## 0.0.3
+
+### Patch Changes
+
+- 2467321: Update tailwind-merge to ^3.7.1.
+- Link the package to its GitHub repository.
+- Updated dependencies [aa8bb3f]
+- Updated dependencies [753d878]
+  - @grainshape/fold@0.1.0
+
 ## 0.0.2
 
 ### Patch Changes

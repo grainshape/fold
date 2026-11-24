@@ -1,10 +1,17 @@
 {
   "name": "@grainshape/tw-fold",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Tailwind-aware variant utility — @grainshape/fold pre-configured with tailwind-merge",
   "author": "John van Dijk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grainshape/fold.git",
+    "directory": "packages/tw-fold"
+  },
+  "homepage": "https://github.com/grainshape/fold/tree/main/packages/tw-fold#readme",
+  "bugs": "https://github.com/grainshape/fold/issues",
   "keywords": [
     "cva",
     "class-variance",

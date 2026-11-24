@@ -1,10 +1,17 @@
 {
   "name": "@grainshape/fold",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Type-safe class-variant utility library",
   "author": "John van Dijk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grainshape/fold.git",
+    "directory": "packages/fold"
+  },
+  "homepage": "https://github.com/grainshape/fold/tree/main/packages/fold#readme",
+  "bugs": "https://github.com/grainshape/fold/issues",
   "keywords": [
     "cva",
     "class-variance",
@@ -21,7 +28,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc",
