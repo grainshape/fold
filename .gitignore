@@ -23,8 +23,5 @@ Thumbs.db
 
 # AI / agent tooling
 AGENTS.md
-opencode.json
 .agents/
-.opencode/
-.opencoderules
 docs/
