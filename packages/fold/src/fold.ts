@@ -125,69 +125,160 @@ export interface DefineConfig {
 }
 
 
-const filterNullish = <T extends object>(obj: T): Partial<T> => Object.fromEntries(
-	Object.entries(obj).filter(([_, value]) => value != null)
-) as Partial<T>;
+/** Most results one recipe (or composed recipe) keeps. Once full, the oldest entry is dropped. */
+const CACHE_LIMIT = 256;
+
+const cacheSet = (cache: Map<string, string>, key: string, value: string): void => {
+	if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value as string);
+	cache.set(key, value);
+};
+
+// Separators inside cache keys. Class names and variant values don't contain these characters.
+const VALUE_END = '\u0000';
+const CALLER_CLASSES_START = '\u0001';
+
+const TYPE_TAGS: Record<string, string> = {
+	string: 's',
+	number: 'n',
+	boolean: 'b',
+	bigint: 'i',
+	symbol: 'y',
+	object: 'o',
+	function: 'f',
+};
+
+/**
+ * Encodes a variant value for a cache key. Resolving looks only at a value's type, whether it is
+ * truthy and its String() form. The encoding keeps all three, so two values with the same encoding
+ * always resolve to the same classes.
+ */
+const encodeValue = (value: unknown): string =>
+	value == null ? '-' : TYPE_TAGS[typeof value] + String(value);
+
+/** Joins two class strings the way clsx does. */
+const joinClasses = (first: string, second: string): string =>
+	first && second ? first + ' ' + second : first || second;
+
+interface CompoundCondition {
+	key: string;
+	/** String forms of an array condition's options, or null for a single-value condition. */
+	options: string[] | null;
+	/** String form of the condition. */
+	text: string;
+}
+
+interface Compound {
+	conditions: CompoundCondition[];
+	klass: ClassValue;
+	className: ClassValue;
+}
+
+type CompoundEntry = Record<string, unknown> & { class?: ClassValue; className?: ClassValue };
+
+/**
+ * An array condition matches a truthy value that is one of its options (compared as is).
+ * Otherwise a value matches when its String() form equals the condition's.
+ */
+const matchesCondition = (value: unknown, condition: CompoundCondition): boolean =>
+	value && condition.options
+		? condition.options.includes(value as string)
+		: String(value) === condition.text;
 
 const typedKeys = <T extends object>(obj: T): (keyof T)[] =>
 	Object.keys(obj) as (keyof T)[];
 
 export const defineConfig : DefineConfig = (options) => {
+	const onResolve = options?.hooks?.onResolve;
 
-	const cx : Resolver = (...inputs: ClassValue[]) => {
-		if (options?.hooks?.onResolve) {
-			return options.hooks.onResolve(clsx(...inputs));
-		}
-
-		return clsx(...inputs);
-	};
+	const cx : Resolver = (...inputs: ClassValue[]) =>
+		onResolve ? onResolve(clsx(...inputs)) : clsx(...inputs);
 
 	const fold : Fold = (config) => {
 
 		const { variants, defaultVariants, compoundVariants } = config ?? {};
-
-		const resolve = ((props) => {
-		  	if (!variants) return cx(config?.base, props?.class, props?.className);
-
-			const resolvedVariants = typedKeys(variants).map((variant) => {
-				const variantProp = props?.[variant as keyof typeof props] ?? defaultVariants?.[variant];
-				if (variantProp == null) return null;
-
-				const variantKey = String(variantProp);
-				return variants[variant][variantKey];
-			});
-
-			const mergedProps = {
-				...defaultVariants,
-				...(props ? filterNullish(props) : {}),
-			}
-
-			const resolvedCompoundVariants = compoundVariants?.reduce(
-				(classes, { class: klass, className, ...conditions }) => {
-					const matches = Object.entries(conditions).every(
-						([key, expectedValue]) => {
-						const actualValue = mergedProps[key as keyof typeof mergedProps];
-						return actualValue && Array.isArray(expectedValue)
-							? (expectedValue.map(String) as any[]).includes(actualValue)
-							: String(actualValue) === String(expectedValue);
-						}
-					);
-
-					return matches ? [...classes, klass, className] : classes;
-				},
-				[] as ClassValue[]
-			);
-
-			return cx(
-				config.base,
-				resolvedVariants,
-				resolvedCompoundVariants,
-				props?.class,
-				props?.className
-			);
-		}) as ReturnType<Fold>;
+		const variantMap = (variants ?? {}) as Record<string, Record<string, ClassValue>>;
+		const defaults = defaultVariants as Record<string, unknown> | undefined;
 
 		const variantKeys = variants ? typedKeys(variants) : [];
+		const variantNames = variantKeys as string[];
+
+		// Compound variants only apply to recipes that have variants
+		const compoundEntries = (variants ? compoundVariants ?? [] : []) as CompoundEntry[];
+		const compounds: Compound[] = compoundEntries.map(({ class: klass, className, ...conditions }) => ({
+			klass,
+			className,
+			conditions: Object.entries(conditions).map(([key, expected]) => ({
+				key,
+				options: Array.isArray(expected) ? expected.map(String) : null,
+				text: String(expected),
+			})),
+		}));
+
+		// Every prop that can change the variant classes: the variants, plus any other key a compound checks
+		const keyNames = [...new Set([
+			...variantNames,
+			...compounds.flatMap(({ conditions }) => conditions.map(({ key }) => key)),
+		])];
+
+		const baseClasses = clsx(config?.base);
+
+		// The prop's own value, or its default when the prop is null or undefined
+		const valueOf = (props: Record<string, unknown> | undefined, key: string): unknown =>
+			props?.[key] ?? defaults?.[key];
+
+		// Base, variant and compound classes for these props, joined but not yet passed to onResolve
+		const resolveVariantClasses = (props: Record<string, unknown> | undefined): string => {
+			const classes: ClassValue[] = [baseClasses];
+
+			for (const name of variantNames) {
+				const value = valueOf(props, name);
+				classes.push(value == null ? null : variantMap[name][String(value)]);
+			}
+
+			for (const { conditions, klass, className } of compounds) {
+				if (conditions.every((condition) => matchesCondition(valueOf(props, condition.key), condition))) {
+					classes.push(klass, className);
+				}
+			}
+
+			return clsx(classes);
+		};
+
+		// Keyed by the effective variant values: the classes before onResolve
+		const variantCache = new Map<string, string>();
+		// Keyed by the effective variant values plus the caller's classes: the final result
+		const resultCache = new Map<string, string>();
+
+		const variantClassesFor = (key: string, props: Record<string, unknown> | undefined): string => {
+			let classes = variantCache.get(key);
+			if (classes === undefined) {
+				classes = resolveVariantClasses(props);
+				cacheSet(variantCache, key, classes);
+			}
+			return classes;
+		};
+
+		const resolve = ((props) => {
+			const values = props as Record<string, unknown> | undefined;
+
+			let key = '';
+			for (const name of keyNames) key += encodeValue(valueOf(values, name)) + VALUE_END;
+
+			const klass = values?.class as ClassValue;
+			const className = values?.className as ClassValue;
+			const callerClasses = klass || className ? clsx(klass, className) : '';
+
+			if (!onResolve) return joinClasses(variantClassesFor(key, values), callerClasses);
+
+			const resultKey = callerClasses ? key + CALLER_CLASSES_START + callerClasses : key;
+			let result = resultCache.get(resultKey);
+			if (result === undefined) {
+				result = onResolve(joinClasses(variantClassesFor(key, values), callerClasses));
+				cacheSet(resultCache, resultKey, result);
+			}
+			return result;
+		}) as ReturnType<Fold>;
+
 		return Object.assign(resolve, {
 			variantKeys,
 			config: Object.freeze(config),
@@ -203,12 +294,21 @@ export const defineConfig : DefineConfig = (options) => {
 	const foldConfig: FoldConfigShape = (config) => config
 
 	const compose : Compose = (...components) => {
+		// Keyed by the joined classes: the onResolve result
+		const resultCache = new Map<string, string>();
+
 		const resolve = ((props = {}) => {
 			const { class: klass, className, ...restProps } = props;
 
-			const classes = components.map((component) => component(restProps));
+			const joined = clsx(components.map((component) => component(restProps)), klass, className);
+			if (!onResolve) return joined;
 
-			return cx(classes, klass, className);
+			let result = resultCache.get(joined);
+			if (result === undefined) {
+				result = onResolve(joined);
+				cacheSet(resultCache, joined, result);
+			}
+			return result;
 		}) as ReturnType<Compose>;
 
 		const variantKeys = [...new Set(components.flatMap((component) => component.variantKeys))] as ComposeVariantKeys<typeof components>;

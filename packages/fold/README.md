@@ -255,6 +255,19 @@ export { fold, compose, cx, foldConfig }
 
 ---
 
+## Caching
+
+Each recipe made with `fold()` or `compose()` remembers its most recent results (up to 256). A repeated call with the same variant values and the same `class`/`className` returns the stored string without resolving or calling `onResolve` again. This makes repeated calls 2–3× faster.
+
+Two rules follow from this:
+
+- **`onResolve` should be a pure function.** It runs once per unique class string per recipe, not on every call. A hook whose output depends on anything other than its input, such as a counter or a global setting, can return stale results.
+- **Treat a recipe's config as fixed once you've passed it to `fold()`.** Changing a variant's classes afterwards doesn't affect results that are already cached.
+
+`cx()` is not cached.
+
+---
+
 ## Credits
 
 Built on top of the ideas and type patterns from [CVA](https://cva.style) by [Joe Bell](https://github.com/joe-bell). fold extends CVA's approach with `foldConfig()` for preserved generic types, `partition()` for prop splitting, and a `defineConfig()` factory for custom resolvers.

@@ -1,4 +1,4 @@
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi } from 'vitest';
 import { defineConfig, fold, foldConfig, compose, type VariantProps } from './fold.js';
 
 describe('VariantProps', () => {
@@ -647,5 +647,120 @@ describe('defineConfig', () => {
 				});
 			});
 		});
+	});
+});
+
+describe('caching', () => {
+	const recipe = foldConfig({
+		base: 'base',
+		variants: {
+			size: { sm: 'small', lg: 'large' },
+			flag: { true: 'on', false: 'off' },
+		},
+		compoundVariants: [
+			{ size: 'lg', flag: true, class: 'big-on' },
+			{ flag: ['true'], class: 'listed' },
+		],
+		defaultVariants: { size: 'lg', flag: false },
+	});
+
+	it('should return the same result for repeated calls', () => {
+		const comp = fold(recipe);
+		expect(comp({ size: 'sm' })).toBe('base small off');
+		expect(comp({ size: 'sm' })).toBe('base small off');
+		expect(comp()).toBe('base large off');
+		expect(comp()).toBe('base large off');
+	});
+
+	it('should keep results apart for different caller classes', () => {
+		const comp = fold(recipe);
+		expect(comp({ size: 'sm', class: 'a' })).toBe('base small off a');
+		expect(comp({ size: 'sm', class: 'b' })).toBe('base small off b');
+		expect(comp({ size: 'sm', className: 'c' })).toBe('base small off c');
+		expect(comp({ size: 'sm' })).toBe('base small off');
+	});
+
+	it('should accept class values that are not strings', () => {
+		const comp = fold(recipe);
+		expect(comp({ size: 'sm', class: ['a', { b: true, c: false }] })).toBe('base small off a b');
+		expect(comp({ size: 'sm', class: ['a', { b: false, c: true }] })).toBe('base small off a c');
+	});
+
+	it('should treat a missing prop, an undefined prop and its default the same', () => {
+		const comp = fold(recipe);
+		expect(comp({ size: 'lg' })).toBe('base large off');
+		expect(comp({ size: undefined })).toBe('base large off');
+		expect(comp({})).toBe('base large off');
+	});
+
+	it('should keep values of different types apart', () => {
+		const comp = fold(recipe);
+		// A single-value condition compares String() forms, so 'true' and true both match it.
+		// An array condition compares a truthy value as is, so only 'true' is listed.
+		expect(comp({ flag: 'true' })).toBe('base large on big-on listed');
+		expect(comp({ flag: true })).toBe('base large on big-on');
+		expect(comp({ flag: 'true' })).toBe('base large on big-on listed');
+	});
+
+	it('should cache recipes without variants', () => {
+		const comp = fold({ base: 'base' });
+		expect(comp({ class: 'a' })).toBe('base a');
+		expect(comp({ class: 'b' })).toBe('base b');
+		expect(comp({ class: 'a' })).toBe('base a');
+	});
+
+	it('should call onResolve once for each unique input', () => {
+		const onResolve = vi.fn((className: string) => `[${className}]`);
+		const { fold } = defineConfig({ hooks: { onResolve } });
+		const comp = fold(recipe);
+
+		expect(comp({ size: 'sm', class: 'x' })).toBe('[base small off x]');
+		expect(comp({ size: 'sm', class: 'x' })).toBe('[base small off x]');
+		expect(onResolve).toHaveBeenCalledTimes(1);
+		expect(onResolve).toHaveBeenLastCalledWith('base small off x');
+
+		expect(comp({ size: 'sm', class: 'y' })).toBe('[base small off y]');
+		expect(onResolve).toHaveBeenCalledTimes(2);
+	});
+
+	it('should give separate recipes separate caches', () => {
+		const onResolve = vi.fn((className: string) => className);
+		const { fold } = defineConfig({ hooks: { onResolve } });
+		const first = fold({ base: 'first', variants: { size: { sm: 'small' } } });
+		const second = fold({ base: 'second', variants: { size: { sm: 'small' } } });
+
+		expect(first({ size: 'sm' })).toBe('first small');
+		expect(second({ size: 'sm' })).toBe('second small');
+		expect(onResolve).toHaveBeenCalledTimes(2);
+	});
+
+	it('should stay correct once old entries are dropped', () => {
+		const onResolve = vi.fn((className: string) => className);
+		const { fold } = defineConfig({ hooks: { onResolve } });
+		const comp = fold(recipe);
+
+		for (let i = 0; i < 300; i++) {
+			expect(comp({ size: 'sm', class: `c${i}` })).toBe(`base small off c${i}`);
+		}
+		expect(onResolve).toHaveBeenCalledTimes(300);
+
+		// The first entries were dropped, so this resolves again with the same result
+		expect(comp({ size: 'sm', class: 'c0' })).toBe('base small off c0');
+		expect(onResolve).toHaveBeenCalledTimes(301);
+	});
+
+	it('should call onResolve once for each unique input in compose', () => {
+		const onResolve = vi.fn((className: string) => `[${className}]`);
+		const { compose } = defineConfig({ hooks: { onResolve } });
+		const box = fold({ variants: { shadow: { sm: 'shadow-sm', md: 'shadow-md' } }, defaultVariants: { shadow: 'sm' } });
+		const stack = fold({ variants: { gap: { 1: 'gap-1', 2: 'gap-2' } } });
+		const card = compose(box, stack);
+
+		expect(card({ shadow: 'md', gap: 2 })).toBe('[shadow-md gap-2]');
+		expect(card({ shadow: 'md', gap: 2 })).toBe('[shadow-md gap-2]');
+		expect(onResolve).toHaveBeenCalledTimes(1);
+
+		expect(card({ shadow: 'md', gap: 2, class: 'p-4' })).toBe('[shadow-md gap-2 p-4]');
+		expect(onResolve).toHaveBeenCalledTimes(2);
 	});
 });
