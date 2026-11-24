@@ -5,7 +5,7 @@ Conventions for agents working in this repository.
 ## Setup
 
 - Use `pnpm`, never npm or yarn. The repo pins pnpm 12.23.0 through `packageManager` in the root `package.json`.
-- Development needs Node `^20.19.0 || ^22.12.0 || >=24.0.0` (the `engines` field in the root `package.json`), because that's what Vite and Vitest support. The published packages have no Node requirement.
+- Development needs Node `^22.12.0 || ^24.0.0 || >=26.0.0` (the `engines` field in the root `package.json`), because that's what Vite, Vitest and Changesets support. The published packages have no Node requirement.
 - Packages allowed to run install scripts are listed under `allowBuilds` in `pnpm-workspace.yaml`. pnpm 12 no longer reads the `"pnpm"` field in `package.json`.
 
 ## Structure
@@ -66,4 +66,5 @@ Before committing, run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm form
 
 - Conventional commits, enforced by commitlint (`@commitlint/config-conventional`) in a Husky `commit-msg` hook: `type(scope): description`, in the present tense. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scopes are usually `fold` or `tw-fold`.
 - A change to a published package needs a changeset in `.changeset/`. `pnpm changeset` asks questions interactively; writing the file by hand works too.
-- To release, `pnpm version-packages` bumps versions and changelogs, then `pnpm release` builds and publishes to npm.
+- Releases run in GitHub Actions (`.github/workflows/release.yml`). When changesets reach `main`, the workflow opens a "chore: version packages" pull request with the version bumps and changelogs. Merging it checks, builds and publishes the new versions to npm, then creates git tags and GitHub releases.
+- npm publishing uses trusted publishing: npm trusts that workflow file, so there's no npm token in the repository or its secrets. Don't add one. `pnpm release` publishes from a local machine and is only a fallback; it asks for the npm passkey in the browser.
