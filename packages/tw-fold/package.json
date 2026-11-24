@@ -16,8 +16,8 @@
   "typings": "dist/fold.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/fold.js",
-      "types": "./dist/fold.d.ts"
+      "types": "./dist/fold.d.ts",
+      "import": "./dist/fold.js"
     }
   },
   "files": [
