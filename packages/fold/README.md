@@ -43,10 +43,10 @@ const button = fold({
   },
 })
 
-button()                              // 'font-medium rounded bg-blue-500 text-white px-4 py-2'
-button({ intent: 'secondary' })       // 'font-medium rounded bg-gray-100 text-gray-900 px-4 py-2'
-button({ size: 'sm' })                // 'font-medium rounded bg-blue-500 text-white px-2 py-1 text-sm'
-button({ class: 'w-full' })           // appends 'w-full' to the resolved string
+button() // 'font-medium rounded bg-blue-500 text-white px-4 py-2'
+button({ intent: 'secondary' }) // 'font-medium rounded bg-gray-100 text-gray-900 px-4 py-2'
+button({ size: 'sm' }) // 'font-medium rounded bg-blue-500 text-white px-2 py-1 text-sm'
+button({ class: 'w-full' }) // appends 'w-full' to the resolved string
 ```
 
 ---
@@ -162,7 +162,7 @@ A `clsx`-compatible utility, passed through any `onResolve` hook defined via `de
 ```ts
 import { cx } from '@grainshape/fold'
 
-cx('foo', undefined, false, 'bar')   // 'foo bar'
+cx('foo', undefined, false, 'bar') // 'foo bar'
 cx({ active: true, disabled: false }) // 'active'
 ```
 
@@ -177,7 +177,7 @@ A typed identity function that captures a config's full generic type without ins
 ```ts
 // Without foldConfig — type is widened, variant keys are lost
 const config = {
-  variants: { size: { sm: 'small', lg: 'large' } }
+  variants: { size: { sm: 'small', lg: 'large' } },
 }
 // typeof config.variants.size → Record<string, string> — 'sm' | 'lg' is gone
 

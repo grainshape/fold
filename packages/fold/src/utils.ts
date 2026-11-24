@@ -1,4 +1,4 @@
-type Key = string | number | symbol;
+type Key = string | number | symbol
 /**
  * Creates a new object with specified properties omitted from the original object.
  * This function removes the specified keys from the input object and returns a new object
@@ -16,26 +16,27 @@ type Key = string | number | symbol;
  * ```
  */
 export function omit<Obj extends Record<Key, any>, Keys extends readonly Key[]>(
-	obj: Obj,
-	...remove: Keys | [Keys]
+  obj: Obj,
+  ...remove: Keys | [Keys]
 ): Omit<Obj, Keys[number]> {
-	const removeList = remove.flat();
-	const removeStrings = removeList.map(key => String(key));
-	const result = {} as Omit<Obj, Keys[number]>;
+  const removeList = remove.flat()
+  const removeStrings = removeList.map((key) => String(key))
+  const result = {} as Omit<Obj, Keys[number]>
 
-	const keys: Key[] = [...Object.getOwnPropertyNames(obj), ...Object.getOwnPropertySymbols(obj)];
+  const keys: Key[] = [...Object.getOwnPropertyNames(obj), ...Object.getOwnPropertySymbols(obj)]
 
-	for (const key of keys) {
-		const shouldRemove = typeof key === 'symbol'
-			? removeList.includes(key as any)
-			: removeStrings.includes(String(key));
+  for (const key of keys) {
+    const shouldRemove =
+      typeof key === 'symbol'
+        ? removeList.includes(key as any)
+        : removeStrings.includes(String(key))
 
-		if (!shouldRemove) {
-			(result as any)[key] = (obj as any)[key];
-		}
-	}
+    if (!shouldRemove) {
+      ;(result as any)[key] = (obj as any)[key]
+    }
+  }
 
-	return result;
+  return result
 }
 
 /**
@@ -55,26 +56,25 @@ export function omit<Obj extends Record<Key, any>, Keys extends readonly Key[]>(
  * ```
  */
 export function pick<Obj extends Record<Key, any>, Keys extends readonly Key[]>(
-	obj: Obj,
-	...keys: Keys | [Keys]
+  obj: Obj,
+  ...keys: Keys | [Keys]
 ): Pick<Obj, Keys[number] & keyof Obj> {
-	const pickList = keys.flat();
-	const pickStrings = pickList.map(key => String(key));
-	const result = {} as Pick<Obj, Keys[number] & keyof Obj>;
+  const pickList = keys.flat()
+  const pickStrings = pickList.map((key) => String(key))
+  const result = {} as Pick<Obj, Keys[number] & keyof Obj>
 
-	const allKeys: Key[] = [...Object.getOwnPropertyNames(obj), ...Object.getOwnPropertySymbols(obj)];
+  const allKeys: Key[] = [...Object.getOwnPropertyNames(obj), ...Object.getOwnPropertySymbols(obj)]
 
-	for (const key of allKeys) {
-		const shouldPick = typeof key === 'symbol'
-			? pickList.includes(key as any)
-			: pickStrings.includes(String(key));
+  for (const key of allKeys) {
+    const shouldPick =
+      typeof key === 'symbol' ? pickList.includes(key as any) : pickStrings.includes(String(key))
 
-		if (shouldPick) {
-			(result as any)[key] = (obj as any)[key];
-		}
-	}
+    if (shouldPick) {
+      ;(result as any)[key] = (obj as any)[key]
+    }
+  }
 
-	return result;
+  return result
 }
 
 /**
@@ -95,8 +95,8 @@ export function pick<Obj extends Record<Key, any>, Keys extends readonly Key[]>(
  * ```
  */
 export function partition<Obj extends Record<Key, any>>(
-	obj: Obj,
-	keys: readonly Key[]
+  obj: Obj,
+  keys: readonly Key[],
 ): [Record<string, any>, Record<string, any>] {
-	return [pick(obj, keys as any), omit(obj, keys as any)];
+  return [pick(obj, keys as any), omit(obj, keys as any)]
 }

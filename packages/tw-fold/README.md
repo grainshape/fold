@@ -26,14 +26,14 @@ const button = fold({
   base: 'text-green-500',
   variants: {
     intent: {
-      primary: 'text-blue-500',   // conflicts with base — twMerge keeps this one
+      primary: 'text-blue-500', // conflicts with base — twMerge keeps this one
       muted: 'opacity-50',
     },
   },
 })
 
-button({ intent: 'primary' })   // 'text-blue-500'  (not 'text-green-500 text-blue-500')
-button({ intent: 'muted' })     // 'text-green-500 opacity-50'
+button({ intent: 'primary' }) // 'text-blue-500'  (not 'text-green-500 text-blue-500')
+button({ intent: 'muted' }) // 'text-green-500 opacity-50'
 ```
 
 Without `tailwind-merge` (plain `@grainshape/fold`), both `text-green-500` and `text-blue-500` would appear in the string and the last one in the stylesheet would win — which is fragile. `@grainshape/tw-fold` removes that ambiguity.
